@@ -35,6 +35,8 @@ const DEFAULTS = {
   mission: 'To provide a nurturing, inclusive environment where every student is empowered to reach their full academic and personal potential.',
   vision: 'To be a leading centre of educational excellence, shaping confident, principled leaders for tomorrow.',
   coreValues: ['Integrity', 'Excellence', 'Respect', 'Innovation'],
+  studentCount: '',
+  yearsOfExcellence: '',
   statistics: [
     { label: 'Students', value: '1,200+' },
     { label: 'Teachers', value: '85+' },

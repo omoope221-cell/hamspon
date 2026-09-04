@@ -196,21 +196,12 @@ export default function WebsiteManagement() {
         </Card>
 
         <Card eyebrow="Homepage" title="Statistics">
-          <div className="space-y-3 mt-2">
-            {settings.statistics.map((stat, i) => (
-              <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input placeholder="Label (e.g. Students)" value={stat.label || ''} onChange={(e) => {
-                  const next = [...settings.statistics]; next[i] = { ...next[i], label: e.target.value }; set('statistics', next);
-                }} />
-                <Input placeholder="Value (e.g. 1,200+)" value={stat.value || ''} onChange={(e) => {
-                  const next = [...settings.statistics]; next[i] = { ...next[i], value: e.target.value }; set('statistics', next);
-                }} />
-                <button type="button" onClick={() => set('statistics', settings.statistics.filter((_, idx) => idx !== i))} className="text-[var(--slate-500)] hover:text-[var(--rust-500)] px-2"><Trash2 size={15} /></button>
-              </div>
-            ))}
-            <button type="button" onClick={() => set('statistics', [...settings.statistics, { label: '', value: '' }])} className="text-xs text-[var(--brass-500)] hover:underline flex items-center gap-1">
-              <Plus size={12} /> Add statistic
-            </button>
+          <p className="text-xs text-[var(--slate-500)] mb-3">
+            Shown on both the Home page and the About page — leave a field blank to hide that statistic.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <Field label="Number of students"><Input placeholder="e.g. 2,500+" value={settings.studentCount || ''} onChange={(e) => set('studentCount', e.target.value)} /></Field>
+            <Field label="Years of excellence"><Input placeholder="e.g. 13+" value={settings.yearsOfExcellence || ''} onChange={(e) => set('yearsOfExcellence', e.target.value)} /></Field>
           </div>
         </Card>
 

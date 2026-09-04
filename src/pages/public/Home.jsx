@@ -9,6 +9,7 @@ import {
 import { useSiteSettings } from "../../context/SiteSettingsContext";
 import Reveal from "../../components/ui/Reveal";
 import SafeImage from "../../components/ui/SafeImage";
+import SchoolStats from "../../components/public/SchoolStats";
 import defaultHeroImg from "/Pry building.jpg";
 
 const academicLevels = [
@@ -84,18 +85,7 @@ export default function Home() {
       </section>
 
       {/* ===== Statistics strip ===== */}
-      {settings.statistics?.length > 0 && (
-        <section className="bg-blue-600 py-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            {settings.statistics.map((s, i) => (
-              <Reveal key={i} delay={i * 80}>
-                <p className="text-3xl md:text-4xl font-extrabold text-white">{s.value}</p>
-                <p className="text-blue-100 text-sm mt-1">{s.label}</p>
-              </Reveal>
-            ))}
-          </div>
-        </section>
-      )}
+      <SchoolStats />
 
       {/* ===== About ===== */}
       <section className="py-16 md:py-24 bg-white">

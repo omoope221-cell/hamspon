@@ -2,24 +2,16 @@
 import { NavLink } from "react-router-dom";
 import {
   BookOpen,
-  Users,
   Target,
   Heart,
-  Award,
   ArrowRight,
-  Globe,
   ShieldCheck,
   Star,
 } from "lucide-react";
 import aboutHeroImg from "/about-hero.jpg"; 
+import ourHistoryImg from "/about-history.jpg";
 import { useSiteSettings } from "../../context/SiteSettingsContext";
-
-const stats = [
-  { icon: Users, value: "2,500+", label: "Students" },
-  { icon: Award, value: "13+", label: "Years of Excellence" },
-  { icon: BookOpen, value: "98%", label: "University Acceptance" },
-  { icon: Globe, value: "30+", label: "Nationalities" },
-];
+import SchoolStats from "../../components/public/SchoolStats";
 
 const values = [
   {
@@ -94,9 +86,12 @@ export default function About() {
               </p>
             </div>
             <div className="relative">
-              <div className="aspect-video bg-blue-100 rounded-2xl overflow-hidden shadow-xl flex items-center justify-center">
-                <Users className="h-20 w-20 text-white opacity-40" />
-                {/* Replace with an actual school image */}
+              <div className="aspect-video bg-blue-100 rounded-2xl overflow-hidden shadow-xl">
+                <img
+                  src={ourHistoryImg}
+                  alt={`Students at ${settings.schoolName}`}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>
@@ -104,26 +99,7 @@ export default function About() {
       </section>
 
       {/* ===== Stats Counter ===== */}
-      <section className="py-16 bg-blue-600">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {stats.map((stat, idx) => {
-              const Icon = stat.icon;
-              return (
-                <div key={idx} className="text-white">
-                  <Icon className="h-10 w-10 mx-auto mb-3 opacity-90" />
-                  <div className="text-3xl md:text-4xl font-extrabold">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1 text-blue-100 font-medium">
-                    {stat.label}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <SchoolStats />
 
       {/* ===== Mission & Vision ===== */}
       <section className="py-16 md:py-24 bg-gray-50">
