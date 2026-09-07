@@ -119,7 +119,7 @@ export default function AdmissionApply() {
             </div>
 
             <div className="bg-gray-50 p-6 rounded-2xl space-y-4">
-              <h2 className="text-xl font-bold text-gray-900">Guardian Details</h2>
+              <h2 className="text-xl font-bold text-gray-900">Parent/Guardian Details</h2>
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field label="Guardian full name" required>
                   <input required className={inputClass} value={form.guardianName} onChange={(e) => set('guardianName', e.target.value)} />

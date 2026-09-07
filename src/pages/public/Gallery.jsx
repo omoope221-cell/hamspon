@@ -7,7 +7,6 @@ import SafeImage from '../../components/ui/SafeImage';
 
 function TourVideo({ url }) {
   if (!url) return null;
-  const isFile = /\.(mp4|webm|ogg)(\?.*)?$/i.test(url);
   return (
     <Reveal className="max-w-4xl mx-auto mb-16">
       <div className="flex items-center gap-2 justify-center mb-5">
@@ -15,17 +14,7 @@ function TourVideo({ url }) {
         <h2 className="text-xl md:text-2xl font-extrabold text-gray-900">Take a Virtual Tour</h2>
       </div>
       <div className="img-frame card-hover rounded-2xl overflow-hidden shadow-lg" style={{ aspectRatio: '16 / 9' }}>
-        {isFile ? (
-          <video src={url} controls className="w-full h-full object-cover" />
-        ) : (
-          <iframe
-            src={url}
-            title="School tour video"
-            className="w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
-        )}
+        <video src={url} controls className="w-full h-full object-cover" />
       </div>
     </Reveal>
   );

@@ -87,6 +87,7 @@ export const siteSettingsApi = {
   get: () => api.get('/site-settings'),
   update: (body) => api.patch('/site-settings', body),
   uploadImage: (target, formData) => api.postForm(`/site-settings/image?target=${target}`, formData),
+  uploadVideo: (formData) => api.postForm('/site-settings/video', formData),
   removeHeroImage: (index) => api.delete(`/site-settings/hero-image/${index}`),
 };
 

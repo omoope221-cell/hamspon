@@ -26,7 +26,7 @@ const DEFAULTS = {
     title: 'Hampsons Group of School',
     subtitle: "Nurturing Tomorrow's Leaders Today — world-class education blending academic excellence with character development, creativity, and innovation.",
     buttonText: 'Apply Now',
-    buttonLink: '/admissions',
+    buttonLink: '/admissions/apply',
     backgroundImages: [],
     backgroundVideo: null,
   },
@@ -49,7 +49,7 @@ const DEFAULTS = {
     title: 'Ready to Join the Hampsons Family?',
     subtitle: 'Applications for the current academic year are now open. Spaces are limited.',
     buttonText: 'Apply Now',
-    buttonLink: '/admissions',
+    buttonLink: '/admissions/apply',
   },
   admissions: {
     status: 'open',

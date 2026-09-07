@@ -31,7 +31,7 @@ const facilities = [
   { title: "Sports Complex", description: "Fields and courts supporting a full range of athletics.", icon: Dumbbell },
   { title: "ICT Centre", description: "Modern computer labs preparing students for a digital world.", icon: Laptop },
   { title: "Music & Arts Studio", description: "Dedicated space for creative and performing arts.", icon: Music },
-  { title: "Dining Hall", description: "A clean, comfortable space serving nutritious meals daily.", icon: Utensils },
+  { title: "A School Hall", description: "A clean, comfortable space serving nutritious meals daily.", icon: Utensils },
 ];
 
 export default function Home() {

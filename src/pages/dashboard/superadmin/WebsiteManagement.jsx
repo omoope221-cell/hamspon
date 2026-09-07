@@ -38,6 +38,7 @@ export default function WebsiteManagement() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [uploadingVideo, setUploadingVideo] = useState(false);
 
   useEffect(() => {
     siteSettingsApi.get().then((r) => setSettings(r.data)).finally(() => setLoading(false));
@@ -76,6 +77,22 @@ export default function WebsiteManagement() {
       setMessage('Image uploaded.');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Failed to upload image.');
+    }
+  }
+
+  async function handleVideoUpload(file) {
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('video', file);
+    setError(''); setUploadingVideo(true);
+    try {
+      const res = await siteSettingsApi.uploadVideo(fd);
+      setSettings(res.data);
+      setMessage('Tour video uploaded.');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to upload video.');
+    } finally {
+      setUploadingVideo(false);
     }
   }
 
@@ -122,8 +139,19 @@ export default function WebsiteManagement() {
             <Field label="Google Maps embed URL"><Input value={settings.googleMapsEmbed || ''} onChange={(e) => set('googleMapsEmbed', e.target.value)} /></Field>
           </div>
           <div className="mt-4">
-            <Field label="School tour video URL" hint="A YouTube/Vimeo embed link (e.g. https://www.youtube.com/embed/VIDEO_ID) or a direct .mp4 file URL. Shown on the public Gallery page.">
-              <Input value={settings.tourVideoUrl || ''} onChange={(e) => set('tourVideoUrl', e.target.value)} placeholder="https://www.youtube.com/embed/…" />
+            <Field label="School tour video" hint="Upload an .mp4 file (max 100MB). Shown on the public Gallery page.">
+              <div className="flex items-center gap-3">
+                <label className="cursor-pointer inline-flex items-center px-3 py-2 rounded-md border border-[var(--paper-200)] text-sm hover:bg-[var(--paper-100)]">
+                  {uploadingVideo ? 'Uploading…' : settings.tourVideoUrl ? 'Replace video' : 'Upload video'}
+                  <input type="file" accept="video/mp4" className="hidden" disabled={uploadingVideo} onChange={(e) => handleVideoUpload(e.target.files?.[0])} />
+                </label>
+                {settings.tourVideoUrl && !uploadingVideo && (
+                  <span className="text-xs text-[var(--sage-600)]">✓ Video uploaded</span>
+                )}
+              </div>
+              {settings.tourVideoUrl && (
+                <video src={settings.tourVideoUrl} controls className="mt-3 w-full max-w-sm rounded-lg border border-[var(--paper-200)]" />
+              )}
             </Field>
           </div>
           <div className="mt-4">
