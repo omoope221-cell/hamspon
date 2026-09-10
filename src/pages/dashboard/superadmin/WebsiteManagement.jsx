@@ -166,7 +166,7 @@ export default function WebsiteManagement() {
           </div>
           <div className="grid sm:grid-cols-2 gap-4 mt-4">
             <div>
-              <p className="text-sm font-medium text-[var(--ink-900)] mb-2">Logo</p>
+              <p className="text-sm font-medium text-[var(--ink-900)] mb-2">Logo (general — public site, admin/staff portals)</p>
               {settings.logo && <img src={settings.logo} alt="Logo" className="h-14 w-14 object-contain mb-2 rounded bg-[var(--paper-100)] p-1" />}
               <label className="flex items-center gap-2 text-sm text-[var(--slate-600)] border border-dashed border-[var(--paper-200)] rounded-md px-3 py-2 cursor-pointer hover:border-[var(--brass-500)] w-fit">
                 <ImagePlus size={16} /> Upload logo
@@ -179,6 +179,24 @@ export default function WebsiteManagement() {
               <label className="flex items-center gap-2 text-sm text-[var(--slate-600)] border border-dashed border-[var(--paper-200)] rounded-md px-3 py-2 cursor-pointer hover:border-[var(--brass-500)] w-fit">
                 <ImagePlus size={16} /> Upload favicon
                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload('favicon', e.target.files?.[0])} />
+              </label>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-[var(--ink-900)] mb-2">Primary School Portal Logo</p>
+              <p className="text-xs text-[var(--slate-500)] mb-2">Shown to Primary students and to parents whose linked children are all in Primary.</p>
+              {settings.logoPrimary && <img src={settings.logoPrimary} alt="Primary logo" className="h-14 w-14 object-contain mb-2 rounded bg-[var(--paper-100)] p-1" />}
+              <label className="flex items-center gap-2 text-sm text-[var(--slate-600)] border border-dashed border-[var(--paper-200)] rounded-md px-3 py-2 cursor-pointer hover:border-[var(--brass-500)] w-fit">
+                <ImagePlus size={16} /> Upload primary logo
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload('logoPrimary', e.target.files?.[0])} />
+              </label>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-[var(--ink-900)] mb-2">Secondary School (College) Portal Logo</p>
+              <p className="text-xs text-[var(--slate-500)] mb-2">Shown to Secondary students and to parents whose linked children are all in Secondary.</p>
+              {settings.logoSecondary && <img src={settings.logoSecondary} alt="Secondary logo" className="h-14 w-14 object-contain mb-2 rounded bg-[var(--paper-100)] p-1" />}
+              <label className="flex items-center gap-2 text-sm text-[var(--slate-600)] border border-dashed border-[var(--paper-200)] rounded-md px-3 py-2 cursor-pointer hover:border-[var(--brass-500)] w-fit">
+                <ImagePlus size={16} /> Upload secondary logo
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload('logoSecondary', e.target.files?.[0])} />
               </label>
             </div>
           </div>

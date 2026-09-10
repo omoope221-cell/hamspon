@@ -9,7 +9,9 @@ const SiteSettingsContext = createContext(null);
 const DEFAULTS = {
   schoolName: 'Hampsons Group of School',
   motto: 'Believe and Achieve',
-  logo: '/logo-removebg-preview.png',
+  logo: '/logo-schools.png',
+  logoPrimary: '/logo-primary.png',
+  logoSecondary: '/logo-college.png',
   favicon: null,
   email: 'info@hampsonsgroupofschool.edu.ng',
   admissionsEmail: 'admissions@hampsonsgroupofschool.edu.ng',
