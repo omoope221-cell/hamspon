@@ -49,7 +49,8 @@ export function navFor(user) {
       return [
         { to: `${b}`, label: 'Dashboard', icon: LayoutDashboard, end: true },
         { to: `${b}/students`, label: 'My Classes & Subjects', icon: GraduationCap },
-        { to: `${b}/results`, label: 'Report Cards', icon: FileText },
+        { to: `${b}/enter-results`, label: 'Enter Results', icon: ClipboardList },
+        { to: `${b}/results`, label: 'Review Results', icon: FileText },
         { to: `${b}/student-fees`, label: 'Student Fees', icon: Receipt },
       ];
     }

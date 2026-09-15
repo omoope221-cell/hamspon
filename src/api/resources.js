@@ -38,10 +38,23 @@ export const examsApi = makeResource('/exams');
 export const resultsApi = {
   getAll: (params) => api.get('/results', params),
   getOne: (id) => api.get(`/results/${id}`),
+  // Class Teacher's "Save Comment" step — never touches scores.
   upsert: (body) => api.post('/results', body),
   submit: (id) => api.patch(`/results/${id}/submit`),
   approve: (id, principalComment) => api.patch(`/results/${id}/approve`, { principalComment }),
   reject: (id, reason) => api.patch(`/results/${id}/reject`, { reason }),
+  unpublish: (id) => api.patch(`/results/${id}/unpublish`),
+  // Per-student, per-subject completion matrix for a class/session/term.
+  reviewMatrix: (params) => api.get('/results/review', params),
+};
+
+// Subject Teacher score entry — scoped to a teacher's own (class, subject)
+// assignments (Class.subjectTeachers), enforced on the backend.
+export const subjectResultsApi = {
+  myAssignments: (params) => api.get('/results/subject-entries/assignments', params),
+  getClassSheet: (params) => api.get('/results/subject-entries', params),
+  upsert: (body) => api.post('/results/subject-entries', body),
+  submit: (body) => api.patch('/results/subject-entries/submit', body),
 };
 
 export const feesApi = makeResource('/fees');
@@ -87,7 +100,6 @@ export const siteSettingsApi = {
   get: () => api.get('/site-settings'),
   update: (body) => api.patch('/site-settings', body),
   uploadImage: (target, formData) => api.postForm(`/site-settings/image?target=${target}`, formData),
-  uploadVideo: (formData) => api.postForm('/site-settings/video', formData),
   removeHeroImage: (index) => api.delete(`/site-settings/hero-image/${index}`),
 };
 

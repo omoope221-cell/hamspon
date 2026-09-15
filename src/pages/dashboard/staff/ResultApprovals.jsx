@@ -9,11 +9,12 @@ import { ApiError } from '../../../api/client';
 
 const STATUS_TONE = { draft: 'slate', submitted: 'brass', approved: 'sage', rejected: 'rust' };
 
-// Visible to any staff member — the backend only ever returns results for
-// classes this staff member is the Class Teacher for (or is assigned to
-// teach), so a Subject Teacher with no Class Teacher assignment simply
-// sees an empty list here. Super Admin/Principal/Vice Principal can
-// publish/override any result from Admin Dashboard → Result Management.
+// This page is only linked from the nav for Principal / Vice Principal /
+// Head Teacher — the school's result overseers, alongside Super Admin
+// (see Admin Dashboard → Result Management for that). Backend-side these
+// roles see and can act on every class's results, not just ones they
+// personally teach — enforced in resultController's OVERSEER_STAFF_ROLES,
+// not just by which nav links are shown.
 export default function StaffResultApprovals() {
   const [classes, setClasses] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -75,6 +76,19 @@ export default function StaffResultApprovals() {
     }
   }
 
+  async function handleUnpublish(result) {
+    if (!window.confirm(`Unpublish ${result.student.firstName} ${result.student.lastName}'s result? It disappears from the student/parent portal until re-approved.`)) return;
+    setActing(result._id);
+    try {
+      await resultsApi.unpublish(result._id);
+      load();
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : 'Failed to unpublish result.');
+    } finally {
+      setActing(null);
+    }
+  }
+
   return (
     <div>
       <PageHeader eyebrow="Class Teacher" title="Result Approvals" />
@@ -130,22 +144,30 @@ export default function StaffResultApprovals() {
               { key: 'average', header: 'Average', render: (r) => r.average ?? '—' },
               { key: 'status', header: 'Status', render: (r) => <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge> },
               {
-                key: 'actions', header: '', render: (r) => r.status === 'submitted' ? (
-                  <div className="flex gap-2">
-                    <Button variant="brass" className="!px-2 !py-1 text-xs" disabled={acting === r._id} onClick={() => handleApprove(r)}>
-                      <Check size={13} /> Publish
+                key: 'actions', header: '', render: (r) => {
+                  if (r.status === 'submitted') return (
+                    <div className="flex gap-2">
+                      <Button variant="brass" className="!px-2 !py-1 text-xs" disabled={acting === r._id} onClick={() => handleApprove(r)}>
+                        <Check size={13} /> Publish
+                      </Button>
+                      <button
+                        type="button"
+                        className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md px-2"
+                        disabled={acting === r._id}
+                        onClick={() => { setRejecting(r); setReason(''); }}
+                        aria-label="Send back"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  );
+                  if (r.status === 'approved') return (
+                    <Button variant="ghost" className="!px-2 !py-1 text-xs" disabled={acting === r._id} onClick={() => handleUnpublish(r)}>
+                      Unpublish
                     </Button>
-                    <button
-                      type="button"
-                      className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md px-2"
-                      disabled={acting === r._id}
-                      onClick={() => { setRejecting(r); setReason(''); }}
-                      aria-label="Send back"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
-                ) : '—',
+                  );
+                  return '—';
+                },
               },
             ]}
           />

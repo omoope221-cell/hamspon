@@ -7,7 +7,7 @@ import { Field, Input, Select, Modal } from '../../../components/ui/Form';
 import { Plus, Trash2 } from 'lucide-react';
 import { ApiError } from '../../../api/client';
 
-const BLANK_EDIT = { name: '', section: 'primary', arm: '', capacity: 40, classTeacher: '', session: '' };
+const BLANK_EDIT = { name: '', section: 'primary', arm: '', capacity: 40, classTeacher: '', session: '', subjectTeachers: [] };
 
 export default function AdminClasses() {
   const [tab, setTab] = useState('classes');
@@ -81,13 +81,31 @@ export default function AdminClasses() {
       capacity: row.capacity || 40,
       classTeacher: row.classTeacher?._id || row.classTeacher || '',
       session: row.session?._id || row.session || '',
+      subjectTeachers: (row.subjectTeachers || []).map((st) => ({
+        subject: st.subject?._id || st.subject || '',
+        teacher: st.teacher?._id || st.teacher || '',
+      })),
     });
     setEditError('');
+  }
+
+  function addSubjectTeacherRow() {
+    setEditForm((f) => ({ ...f, subjectTeachers: [...f.subjectTeachers, { subject: '', teacher: '' }] }));
+  }
+  function updateSubjectTeacherRow(index, field, value) {
+    setEditForm((f) => ({
+      ...f,
+      subjectTeachers: f.subjectTeachers.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
+    }));
+  }
+  function removeSubjectTeacherRow(index) {
+    setEditForm((f) => ({ ...f, subjectTeachers: f.subjectTeachers.filter((_, i) => i !== index) }));
   }
 
   async function handleSaveEdit(e) {
     e.preventDefault();
     setEditError(''); setSaving(true);
+    const pairs = editForm.subjectTeachers.filter((r) => r.subject && r.teacher);
     try {
       await classesApi.update(editing._id, {
         name: editForm.name,
@@ -96,6 +114,10 @@ export default function AdminClasses() {
         capacity: Number(editForm.capacity),
         classTeacher: editForm.classTeacher || null,
         session: editForm.session,
+        subjectTeachers: pairs,
+        // Keep the plain `subjects` list (used elsewhere for headcounts)
+        // in sync with whichever subjects now have an assigned teacher.
+        subjects: [...new Set(pairs.map((r) => r.subject))],
       });
       setEditing(null);
       load();
@@ -236,6 +258,34 @@ export default function AdminClasses() {
                 {sessions.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
               </Select>
             </Field>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-[var(--ink-900)]">Subjects &amp; Subject Teachers</span>
+                <button type="button" onClick={addSubjectTeacherRow} className="text-xs text-[var(--brass-600)] hover:underline">+ Add subject</button>
+              </div>
+              <p className="text-xs text-[var(--slate-500)] mb-2">
+                Only the teacher assigned here for a subject can enter that subject's scores for this class.
+              </p>
+              <div className="space-y-2">
+                {editForm.subjectTeachers.map((row, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                    <Select value={row.subject} onChange={(e) => updateSubjectTeacherRow(i, 'subject', e.target.value)}>
+                      <option value="">Select subject</option>
+                      {subjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                    </Select>
+                    <Select value={row.teacher} onChange={(e) => updateSubjectTeacherRow(i, 'teacher', e.target.value)}>
+                      <option value="">Select teacher</option>
+                      {staff.map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName}</option>)}
+                    </Select>
+                    <button type="button" onClick={() => removeSubjectTeacherRow(i)} className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2" aria-label="Remove">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+                {!editForm.subjectTeachers.length && <p className="text-xs text-[var(--slate-500)]">No subjects assigned to this class yet.</p>}
+              </div>
+            </div>
 
             {editError && <p className="text-sm text-[var(--rust-500)] bg-[var(--rust-100)] rounded-md px-3 py-2">{editError}</p>}
 

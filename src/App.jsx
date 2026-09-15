@@ -51,6 +51,7 @@ import AdminPasswordManagement from './pages/dashboard/superadmin/PasswordManage
 import StaffOverview from './pages/dashboard/staff/Overview';
 import StaffStudents from './pages/dashboard/staff/Students';
 import StaffResults from './pages/dashboard/staff/Results';
+import StaffEnterResults from './pages/dashboard/staff/EnterResults';
 import StaffResultApprovals from './pages/dashboard/staff/ResultApprovals';
 import StaffStudentFees from './pages/dashboard/staff/StudentFees';
 import StaffFees from './pages/dashboard/staff/Fees';
@@ -135,6 +136,7 @@ export default function App() {
             <Route index element={<StaffOverview />} />
             <Route path="students" element={<StaffStudents />} />
             <Route path="results" element={<StaffResults />} />
+            <Route path="enter-results" element={<StaffEnterResults />} />
             <Route path="result-approvals" element={<StaffResultApprovals />} />
             <Route path="student-fees" element={<StaffStudentFees />} />
             <Route path="fees" element={<StaffFees />} />

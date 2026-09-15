@@ -1,12 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { classesApi, subjectsApi, sessionsApi, studentsApi, resultsApi } from '../../../api/resources';
+import { classesApi, sessionsApi, studentsApi, resultsApi } from '../../../api/resources';
 import PageHeader from '../../../components/ui/PageHeader';
-import { Card, Button, Badge, Spinner } from '../../../components/ui/Primitives';
+import { Card, Button, Badge, Spinner, EmptyState } from '../../../components/ui/Primitives';
 import { Field, Select, Input, Textarea } from '../../../components/ui/Form';
 import { useAuth } from '../../../context/AuthContext';
 import { ApiError } from '../../../api/client';
 import { downloadReportCard } from '../../../utils/downloadReportCard';
-import { Trash2, Plus, FileDown } from 'lucide-react';
+import { FileDown, Send } from 'lucide-react';
 
 const AFFECTIVE_TRAITS = [
   ['punctuality', 'Punctuality'], ['neatness', 'Neatness'], ['honesty', 'Honesty'], ['respect', 'Respect'],
@@ -17,19 +17,11 @@ const PSYCHOMOTOR_TRAITS = [
   ['handwriting', 'Handwriting'], ['creativity', 'Creativity'], ['drawing', 'Drawing'], ['sports', 'Sports'],
   ['musicalSkills', 'Musical Skills'], ['practicalSkills', 'Practical Skills'], ['communication', 'Communication'],
 ];
-const GRADE_SCALE = [
-  ['80 – 100', 'A', 'Excellent'], ['70 – 79', 'B', 'Very Good'], ['60 – 69', 'C', 'Good'],
-  ['50 – 59', 'D', 'Fair'], ['40 – 49', 'E', 'Pass'], ['0 – 39', 'F', 'Fail'],
-];
 
-function computeGrade(total) {
-  if (total >= 80) return 'A';
-  if (total >= 70) return 'B';
-  if (total >= 60) return 'C';
-  if (total >= 50) return 'D';
-  if (total >= 40) return 'E';
-  return 'F';
-}
+const STATUS_TONE = { draft: 'slate', submitted: 'brass', approved: 'sage', rejected: 'rust' };
+const STATUS_LABEL = { draft: 'Draft', submitted: 'Awaiting admin review', approved: 'Published', rejected: 'Sent back by admin' };
+const SUBJECT_STATUS_TONE = { not_started: 'slate', in_progress: 'brass', submitted: 'sage' };
+const SUBJECT_STATUS_LABEL = { not_started: 'Not started', in_progress: 'In progress', submitted: 'Submitted' };
 
 function RatingSelect({ value, onChange }) {
   return (
@@ -41,22 +33,21 @@ function RatingSelect({ value, onChange }) {
 }
 
 const BLANK_CARD = () => ({
-  scores: [], // { subject, subjectId, ca1, ca2, assignment, exam }
   teacherComment: '',
   daysPresent: '', totalDays: '',
   affectiveDomain: {}, psychomotorDomain: {},
   nextTermBegins: '', promotedTo: '', nextClass: '',
 });
 
-// The Class Teacher opens a report card by picking one student, sees the
-// full template (student info, every subject they're taking, both
-// behaviour domains, promotion status), can add/remove/edit subject rows
-// freely, and saves the whole card in one go. Saving publishes it
-// immediately to the student/parent portals.
+// The Class Teacher's review screen. Scores are entered by Subject
+// Teachers (see EnterResults.jsx) and can only ever be viewed here, never
+// edited — this page only writes the comment, promotion status, and
+// behaviour ratings, then submits the whole thing to Admin for
+// approval/publishing. The backend enforces the same rule regardless of
+// what this UI does or doesn't show.
 export default function StaffResults() {
   const { user } = useAuth();
   const [myClasses, setMyClasses] = useState([]);
-  const [allSubjects, setAllSubjects] = useState([]);
   const [sessions, setSessions] = useState([]);
   const [students, setStudents] = useState([]);
 
@@ -64,24 +55,25 @@ export default function StaffResults() {
   const [sessionId, setSessionId] = useState('');
   const [term, setTerm] = useState('First Term');
   const [studentId, setStudentId] = useState('');
-  const [addSubjectId, setAddSubjectId] = useState('');
 
+  const [matrix, setMatrix] = useState([]);
   const [existing, setExisting] = useState(null); // the current Result document, if any
   const [card, setCard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingMatrix, setLoadingMatrix] = useState(false);
   const [loadingCard, setLoadingCard] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    Promise.all([classesApi.getAll({ limit: 200 }), subjectsApi.getAll({ limit: 200 }), sessionsApi.getAll({ limit: 20 })])
-      .then(([c, s, ses]) => {
+    Promise.all([classesApi.getAll({ limit: 200 }), sessionsApi.getAll({ limit: 20 })])
+      .then(([c, ses]) => {
         const owned = c.data.filter((cls) => (cls.classTeacher?._id || cls.classTeacher) === user.staffProfile);
         setMyClasses(owned);
         if (owned.length) setClassId(owned[0]._id);
-        setAllSubjects(s.data);
         setSessions(ses.data);
         const current = ses.data.find((x) => x.isCurrent);
         if (current) setSessionId(current._id);
@@ -97,6 +89,16 @@ export default function StaffResults() {
     });
   }, [classId]);
 
+  const loadMatrix = useCallback(() => {
+    if (!classId || !sessionId || !term) { setMatrix([]); return; }
+    setLoadingMatrix(true);
+    resultsApi.reviewMatrix({ class: classId, session: sessionId, term })
+      .then((r) => setMatrix(r.data))
+      .finally(() => setLoadingMatrix(false));
+  }, [classId, sessionId, term]);
+
+  useEffect(() => { loadMatrix(); }, [loadMatrix]);
+
   const loadCard = useCallback(() => {
     if (!studentId || !sessionId || !term) { setExisting(null); setCard(null); return; }
     setLoadingCard(true); setError(''); setSuccess('');
@@ -104,11 +106,7 @@ export default function StaffResults() {
       const result = r.data[0] || null;
       setExisting(result);
       setCard({
-        scores: (result?.scores || []).map((s) => ({
-          subjectId: s.subject?._id || s.subject, subjectName: s.subject?.name || '—',
-          ca1: s.ca1 ?? 0, ca2: s.ca2 ?? 0, assignment: s.assignment ?? 0, exam: s.exam ?? 0,
-          grade: s.grade, total: s.total, position: s.position,
-        })),
+        ...BLANK_CARD(),
         teacherComment: result?.teacherComment || '',
         daysPresent: result?.attendance?.daysPresent ?? '', totalDays: result?.attendance?.totalDays ?? '',
         affectiveDomain: result?.affectiveDomain || {}, psychomotorDomain: result?.psychomotorDomain || {},
@@ -120,31 +118,11 @@ export default function StaffResults() {
 
   useEffect(() => { loadCard(); }, [loadCard]);
 
-  function addSubjectRow() {
-    if (!addSubjectId) return;
-    const subj = allSubjects.find((s) => s._id === addSubjectId);
-    if (!subj || card.scores.some((s) => s.subjectId === addSubjectId)) return;
-    setCard((c) => ({ ...c, scores: [...c.scores, { subjectId: subj._id, subjectName: subj.name, ca1: 0, ca2: 0, assignment: 0, exam: 0 }] }));
-    setAddSubjectId('');
-  }
-  function removeSubjectRow(subjectId) {
-    setCard((c) => ({ ...c, scores: c.scores.filter((s) => s.subjectId !== subjectId) }));
-  }
-  function updateScoreField(subjectId, field, value) {
-    setCard((c) => ({ ...c, scores: c.scores.map((s) => (s.subjectId === subjectId ? { ...s, [field]: value } : s)) }));
-  }
-
-  const previewTotal = (row) => Number(row.ca1 || 0) + Number(row.ca2 || 0) + Number(row.assignment || 0) + Number(row.exam || 0);
-  const cardTotal = card ? card.scores.reduce((sum, r) => sum + previewTotal(r), 0) : 0;
-  const cardAverage = card && card.scores.length ? +(cardTotal / card.scores.length).toFixed(2) : 0;
-
-  async function handleSave() {
-    if (!card.scores.length) { setError('Add at least one subject before saving.'); return; }
+  async function handleSaveComment() {
     setError(''); setSuccess(''); setSaving(true);
     try {
-      await resultsApi.upsert({
+      const result = await resultsApi.upsert({
         student: studentId, class: classId, session: sessionId, term,
-        scores: card.scores.map((s) => ({ subject: s.subjectId, ca1: Number(s.ca1) || 0, ca2: Number(s.ca2) || 0, assignment: Number(s.assignment) || 0, exam: Number(s.exam) || 0 })),
         teacherComment: card.teacherComment,
         attendance: { daysPresent: card.daysPresent === '' ? null : Number(card.daysPresent), totalDays: card.totalDays === '' ? null : Number(card.totalDays) },
         affectiveDomain: card.affectiveDomain,
@@ -153,11 +131,26 @@ export default function StaffResults() {
         promotedTo: card.promotedTo,
         nextClass: card.nextClass,
       });
-      setSuccess('Saved — this report card is now visible in the student and parent portals.');
-      loadCard();
+      setSuccess('Comment saved.');
+      setExisting(result.data);
+      loadMatrix();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Failed to save this report card.');
+      setError(err instanceof ApiError ? err.message : 'Failed to save.');
     } finally { setSaving(false); }
+  }
+
+  async function handleSubmit() {
+    if (!existing) return;
+    if (!window.confirm('Submit this result for admin review? You can still save the comment again while it\'s under review, but it will lock once approved.')) return;
+    setSubmitting(true); setError(''); setSuccess('');
+    try {
+      const res = await resultsApi.submit(existing._id);
+      setExisting(res.data);
+      setSuccess('Submitted for admin review.');
+      loadMatrix();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to submit.');
+    } finally { setSubmitting(false); }
   }
 
   async function handleDownload() {
@@ -171,16 +164,16 @@ export default function StaffResults() {
 
   const student = students.find((s) => s._id === studentId);
   const selectedClass = myClasses.find((c) => c._id === classId);
-  const availableSubjects = card ? allSubjects.filter((s) => !card.scores.some((sc) => sc.subjectId === s._id)) : [];
+  const matrixRow = matrix.find((m) => m.student._id === studentId);
 
   if (!loading && !myClasses.length) {
     return (
       <div>
-        <PageHeader eyebrow="Class Teacher" title="Report Cards" />
+        <PageHeader eyebrow="Class Teacher" title="Review Results" />
         <Card>
           <p className="text-sm text-[var(--slate-500)] text-center py-8">
             You haven't been assigned as Class Teacher for any class yet — contact your Super Admin to be assigned
-            before you can fill report cards.
+            before you can review report cards.
           </p>
         </Card>
       </div>
@@ -189,23 +182,17 @@ export default function StaffResults() {
 
   return (
     <div>
-      <PageHeader eyebrow="Class Teacher" title="Report Cards" />
+      <PageHeader eyebrow="Class Teacher" title="Review Results" />
       <p className="text-sm text-[var(--slate-500)] -mt-4 mb-6">
-        Select a student to open their report card. Add or remove subjects as needed, fill in everything, then save —
-        it's visible to the student and parent right away.
+        Scores are entered by each subject's teacher — you can't edit them here. Review what's been submitted, add
+        your comment, and send the result to Admin for approval once every subject is in.
       </p>
 
       <Card className="mb-4">
-        <div className="grid sm:grid-cols-4 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <Field label="Class">
             <Select value={classId} onChange={(e) => setClassId(e.target.value)}>
               {myClasses.map((c) => <option key={c._id} value={c._id}>{c.name}{c.arm ? ` ${c.arm}` : ''}</option>)}
-            </Select>
-          </Field>
-          <Field label="Student">
-            <Select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-              <option value="">Select</option>
-              {students.map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName}</option>)}
             </Select>
           </Field>
           <Field label="Session">
@@ -222,25 +209,60 @@ export default function StaffResults() {
         </div>
       </Card>
 
+      {/* Class overview — who's complete, who's missing subjects */}
+      <Card className="mb-4">
+        <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold mb-3">Class Overview</h3>
+        {loadingMatrix ? (
+          <div className="flex justify-center py-6"><Spinner /></div>
+        ) : !matrix.length ? (
+          <EmptyState title="No students in this class" />
+        ) : (
+          <div className="overflow-x-auto thin-scroll">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--paper-200)]">
+                  {['Student', 'Subjects', 'Comment', 'Status', ''].map((h) => (
+                    <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrix.map((row) => (
+                  <tr
+                    key={row.student._id}
+                    onClick={() => setStudentId(row.student._id)}
+                    className={`border-b border-[var(--paper-200)] last:border-0 cursor-pointer hover:bg-[var(--paper-100)] ${row.student._id === studentId ? 'bg-[var(--paper-100)]' : ''}`}
+                  >
+                    <td className="py-2 px-2 whitespace-nowrap">{row.student.firstName} {row.student.lastName}</td>
+                    <td className="py-2 px-2">{row.subjectsCompleted}/{row.subjectsTotal} submitted</td>
+                    <td className="py-2 px-2">{row.hasComment ? <Badge tone="sage">Added</Badge> : <Badge tone="slate">Missing</Badge>}</td>
+                    <td className="py-2 px-2"><Badge tone={STATUS_TONE[row.resultStatus]}>{STATUS_LABEL[row.resultStatus]}</Badge></td>
+                    <td className="py-2 px-2 text-xs text-[var(--brass-600)]">Review →</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
       {loadingCard ? (
         <div className="flex justify-center py-16"><Spinner size={28} /></div>
       ) : !card ? (
-        <p className="text-sm text-[var(--slate-500)]">Select a student to open their report card.</p>
+        <p className="text-sm text-[var(--slate-500)]">Select a student above to review their result.</p>
       ) : (
         <div className="space-y-4">
           {/* Student Information */}
           <Card>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold">Student Information</h3>
-              {existing && <Badge tone="sage">Published</Badge>}
+              {existing && <Badge tone={STATUS_TONE[existing.status]}>{STATUS_LABEL[existing.status]}</Badge>}
             </div>
             <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm mb-3">
               <p><span className="text-[var(--slate-500)]">Name:</span> {student?.firstName} {student?.lastName}</p>
               <p><span className="text-[var(--slate-500)]">Admission No.:</span> {student?.admissionNumber}</p>
               <p><span className="text-[var(--slate-500)]">Class:</span> {selectedClass?.name}</p>
               <p><span className="text-[var(--slate-500)]">Arm:</span> {selectedClass?.arm || '—'}</p>
-              <p><span className="text-[var(--slate-500)]">Gender:</span> {student?.gender || '—'}</p>
-              <p><span className="text-[var(--slate-500)]">Date of Birth:</span> {student?.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString() : '—'}</p>
             </div>
             <div className="grid grid-cols-2 gap-3 max-w-sm">
               <Field label="Days present"><Input type="number" min="0" value={card.daysPresent} onChange={(e) => setCard({ ...card, daysPresent: e.target.value })} /></Field>
@@ -248,81 +270,50 @@ export default function StaffResults() {
             </div>
           </Card>
 
-          {/* Academic Performance */}
+          {/* Academic Performance — read-only, entered by each subject teacher */}
           <Card>
             <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold mb-3">Academic Performance</h3>
-            <div className="overflow-x-auto thin-scroll mb-3">
+            <div className="overflow-x-auto thin-scroll mb-1">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--paper-200)]">
-                    {['Subject', 'CA1 (10)', 'CA2 (10)', 'Assign. (10)', 'Exam (70)', 'Total (100)', 'Grade', 'Position', ''].map((h) => (
+                    {['Subject', 'Teacher', 'Total (100)', 'Grade', 'Status'].map((h) => (
                       <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {card.scores.map((row) => (
-                    <tr key={row.subjectId} className="border-b border-[var(--paper-200)] last:border-0">
-                      <td className="py-2 px-2 whitespace-nowrap">{row.subjectName}</td>
-                      {['ca1', 'ca2', 'assignment', 'exam'].map((field) => (
-                        <td key={field} className="py-2 px-2">
-                          <input
-                            type="number" min="0" max={field === 'exam' ? 70 : 10}
-                            value={row[field]}
-                            onChange={(e) => updateScoreField(row.subjectId, field, e.target.value)}
-                            className="w-14 rounded border border-[var(--paper-200)] px-2 py-1 text-sm"
-                          />
-                        </td>
-                      ))}
-                      <td className="py-2 px-2 font-mono">{previewTotal(row)}</td>
-                      <td className="py-2 px-2"><Badge tone="brass">{computeGrade(previewTotal(row))}</Badge></td>
-                      <td className="py-2 px-2">{row.position || '—'}</td>
-                      <td className="py-2 px-2">
-                        <button onClick={() => removeSubjectRow(row.subjectId)} className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-1" aria-label="Remove subject">
-                          <Trash2 size={15} />
-                        </button>
-                      </td>
+                  {(matrixRow?.subjects || []).map((s) => (
+                    <tr key={s.subject._id || s.subject} className="border-b border-[var(--paper-200)] last:border-0">
+                      <td className="py-2 px-2 whitespace-nowrap">{s.subject?.name || '—'}</td>
+                      <td className="py-2 px-2 whitespace-nowrap text-[var(--slate-500)]">{s.teacher ? `${s.teacher.firstName} ${s.teacher.lastName}` : '—'}</td>
+                      <td className="py-2 px-2 font-mono">{s.total ?? '—'}</td>
+                      <td className="py-2 px-2">{s.total != null && <Badge tone="brass">{s.total >= 80 ? 'A' : s.total >= 70 ? 'B' : s.total >= 60 ? 'C' : s.total >= 50 ? 'D' : s.total >= 40 ? 'E' : 'F'}</Badge>}</td>
+                      <td className="py-2 px-2"><Badge tone={SUBJECT_STATUS_TONE[s.status]}>{SUBJECT_STATUS_LABEL[s.status]}</Badge></td>
                     </tr>
                   ))}
-                  {!card.scores.length && (
-                    <tr><td colSpan={9} className="py-4 text-center text-[var(--slate-500)]">No subjects added yet.</td></tr>
+                  {!matrixRow?.subjects?.length && (
+                    <tr><td colSpan={5} className="py-4 text-center text-[var(--slate-500)]">No subjects assigned to this class yet.</td></tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div className="flex items-center gap-2">
-              <Select value={addSubjectId} onChange={(e) => setAddSubjectId(e.target.value)} className="max-w-xs">
-                <option value="">Add a subject…</option>
-                {availableSubjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
-              </Select>
-              <Button variant="ghost" onClick={addSubjectRow} disabled={!addSubjectId}><Plus size={15} /> Add subject</Button>
-            </div>
+            <p className="text-xs text-[var(--slate-500)] mt-2">
+              Subject teachers add/remove subjects for this class from Classes &amp; Subjects — not from here.
+            </p>
           </Card>
 
           {/* Result Summary */}
           <Card>
             <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold mb-3">Result Summary</h3>
             <div className="grid sm:grid-cols-2 gap-x-6 gap-y-2 text-sm mb-3">
-              <p><span className="text-[var(--slate-500)]">Total Score:</span> <span className="font-mono">{cardTotal}</span></p>
-              <p><span className="text-[var(--slate-500)]">Average Score:</span> <span className="font-mono">{cardAverage}</span></p>
-              <p><span className="text-[var(--slate-500)]">Grade:</span> <Badge tone="brass">{computeGrade(cardAverage)}</Badge></p>
-              <p><span className="text-[var(--slate-500)]">Overall Position:</span> {existing?.positionInClass ? `${existing.positionInClass} of ${existing.classSize || '—'}` : 'Calculated after saving'}</p>
+              <p><span className="text-[var(--slate-500)]">Total Score:</span> <span className="font-mono">{existing?.totalScore ?? 0}</span></p>
+              <p><span className="text-[var(--slate-500)]">Average Score:</span> <span className="font-mono">{existing?.average ?? 0}</span></p>
+              <p><span className="text-[var(--slate-500)]">Overall Position:</span> {existing?.positionInClass ? `${existing.positionInClass} of ${existing.classSize || '—'}` : 'Calculated once published'}</p>
             </div>
             <Field label="Next term begins">
               <Input type="date" value={card.nextTermBegins} onChange={(e) => setCard({ ...card, nextTermBegins: e.target.value })} />
             </Field>
-          </Card>
-
-          {/* Grade Scale (reference) */}
-          <Card>
-            <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold mb-3">Grade Scale</h3>
-            <table className="text-sm">
-              <tbody>
-                {GRADE_SCALE.map(([range, grade, remark]) => (
-                  <tr key={grade}><td className="pr-6 py-0.5">{range}</td><td className="pr-6 py-0.5 font-bold">{grade}</td><td className="py-0.5 text-[var(--slate-500)]">{remark}</td></tr>
-                ))}
-              </tbody>
-            </table>
           </Card>
 
           {/* Affective Domain */}
@@ -356,11 +347,11 @@ export default function StaffResults() {
               <Textarea rows={2} value={card.teacherComment} onChange={(e) => setCard({ ...card, teacherComment: e.target.value })} />
             </Field>
             <p className="text-xs text-[var(--slate-500)] mt-2">
-              Head Teacher / Principal's Comment: {existing?.principalComment || '— set by the Super Admin/Principal, not editable here —'}
+              Head Teacher / Principal's Comment: {existing?.principalComment || '— set by the admin during review, not editable here —'}
             </p>
           </Card>
 
-          {/* Report Card Status */}
+          {/* Promotion */}
           <Card>
             <h3 className="font-mono text-[11px] uppercase tracking-wider text-[var(--brass-600)] font-bold mb-3">Report Card Status</h3>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -372,9 +363,15 @@ export default function StaffResults() {
           {error && <p className="text-sm text-[var(--rust-500)] bg-[var(--rust-100)] rounded-md px-3 py-2">{error}</p>}
           {success && <p className="text-sm text-[var(--sage-600)] bg-[var(--sage-100)] rounded-md px-3 py-2">{success}</p>}
 
-          <div className="flex gap-3">
-            <Button variant="brass" onClick={handleSave} disabled={saving} className="flex-1">
-              {saving ? 'Saving…' : existing ? 'Save Changes — Update Portal' : 'Save & Send to Parent/Student Portal'}
+          <div className="flex flex-wrap gap-3">
+            <Button variant="ghost" onClick={handleSaveComment} disabled={saving}>
+              {saving ? 'Saving…' : 'Save Comment'}
+            </Button>
+            <Button
+              variant="brass" onClick={handleSubmit}
+              disabled={!existing || submitting || existing.status === 'submitted' || existing.status === 'approved'}
+            >
+              <Send size={15} /> {existing?.status === 'approved' ? 'Published' : existing?.status === 'submitted' ? 'Awaiting review' : submitting ? 'Submitting…' : 'Submit Result'}
             </Button>
             {existing && (
               <Button variant="ghost" onClick={handleDownload} disabled={downloading}>

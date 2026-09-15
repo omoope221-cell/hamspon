@@ -29,6 +29,11 @@ export default function AdminResults() {
     await resultsApi.reject(id, reason);
     load();
   }
+  async function unpublish(id) {
+    if (!window.confirm('Unpublish this result? It will disappear from the student/parent portal until re-approved.')) return;
+    await resultsApi.unpublish(id);
+    load();
+  }
 
   return (
     <div>
@@ -56,12 +61,19 @@ export default function AdminResults() {
             { key: 'class', header: 'Class', render: (r) => r.class?.name },
             { key: 'term', header: 'Term / Session', render: (r) => `${r.term}` },
             { key: 'average', header: 'Average', render: (r) => <span className="font-mono">{r.average}</span> },
-            { key: 'status', header: 'Status', render: (r) => <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge> },
+            { key: 'status', header: 'Status', render: (r) => <Badge tone={STATUS_TONE[r.status]}>{r.status === 'approved' ? 'Published' : r.status}</Badge> },
             {
-              key: 'actions', header: '', render: (r) => r.status === 'submitted' && (
+              key: 'actions', header: '', render: (r) => (
                 <div className="flex gap-2">
-                  <Button variant="brass" className="!px-2 !py-1 text-xs" onClick={() => approve(r._id)}>Approve</Button>
-                  <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => reject(r._id)}>Reject</Button>
+                  {r.status === 'submitted' && (
+                    <>
+                      <Button variant="brass" className="!px-2 !py-1 text-xs" onClick={() => approve(r._id)}>Approve &amp; Publish</Button>
+                      <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => reject(r._id)}>Reject</Button>
+                    </>
+                  )}
+                  {r.status === 'approved' && (
+                    <Button variant="ghost" className="!px-2 !py-1 text-xs" onClick={() => unpublish(r._id)}>Unpublish</Button>
+                  )}
                 </div>
               ),
             },
