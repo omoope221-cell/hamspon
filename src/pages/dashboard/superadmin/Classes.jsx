@@ -105,7 +105,10 @@ export default function AdminClasses() {
   async function handleSaveEdit(e) {
     e.preventDefault();
     setEditError(''); setSaving(true);
-    const pairs = editForm.subjectTeachers.filter((r) => r.subject && r.teacher);
+    // A row only needs a subject — leaving "teacher" blank is how you
+    // mark a subject as covered by the Class Teacher instead of a
+    // separate subject teacher.
+    const pairs = editForm.subjectTeachers.filter((r) => r.subject).map((r) => ({ subject: r.subject, teacher: r.teacher || null }));
     try {
       await classesApi.update(editing._id, {
         name: editForm.name,
@@ -116,7 +119,8 @@ export default function AdminClasses() {
         session: editForm.session,
         subjectTeachers: pairs,
         // Keep the plain `subjects` list (used elsewhere for headcounts)
-        // in sync with whichever subjects now have an assigned teacher.
+        // in sync with every subject that's part of this class, whether
+        // or not it has its own teacher assigned yet.
         subjects: [...new Set(pairs.map((r) => r.subject))],
       });
       setEditing(null);
@@ -265,7 +269,9 @@ export default function AdminClasses() {
                 <button type="button" onClick={addSubjectTeacherRow} className="text-xs text-[var(--brass-600)] hover:underline">+ Add subject</button>
               </div>
               <p className="text-xs text-[var(--slate-500)] mb-2">
-                Only the teacher assigned here for a subject can enter that subject's scores for this class.
+                Add every subject this class takes. Assign a subject teacher where you have one — leave "teacher"
+                as "No subject teacher" to let the Class Teacher cover that subject instead (common for classes
+                where one teacher takes everything).
               </p>
               <div className="space-y-2">
                 {editForm.subjectTeachers.map((row, i) => (
@@ -275,7 +281,7 @@ export default function AdminClasses() {
                       {subjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
                     </Select>
                     <Select value={row.teacher} onChange={(e) => updateSubjectTeacherRow(i, 'teacher', e.target.value)}>
-                      <option value="">Select teacher</option>
+                      <option value="">No subject teacher (Class Teacher covers it)</option>
                       {staff.map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName}</option>)}
                     </Select>
                     <button type="button" onClick={() => removeSubjectTeacherRow(i)} className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2" aria-label="Remove">

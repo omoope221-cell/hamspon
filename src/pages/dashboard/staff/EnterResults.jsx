@@ -125,8 +125,8 @@ export default function EnterResults() {
     <div>
       <PageHeader eyebrow="Subject Teacher" title="Enter Results" />
       <p className="text-sm text-[var(--slate-500)] -mt-4 mb-6">
-        Only the classes and subjects you're assigned to teach show up here. Save each student as you go, then
-        submit once every student in the class has a score.
+        Shows every subject you're assigned to teach, plus any subject in your own class that has no subject
+        teacher assigned yet. Save each student as you go, then submit once every student in the class has a score.
       </p>
 
       {loading ? (
@@ -135,7 +135,7 @@ export default function EnterResults() {
         <Card>
           <EmptyState
             title="No subject assignments yet"
-            body="You haven't been assigned to teach any subject in any class. Ask an admin to assign you from Classes & Subjects."
+            body="You haven't been assigned to teach any subject, and you're not the Class Teacher for a class with an unassigned subject. Ask an admin to assign you from Classes & Subjects."
           />
         </Card>
       ) : (
@@ -146,7 +146,7 @@ export default function EnterResults() {
                 <Select value={assignmentKey} onChange={(e) => setAssignmentKey(e.target.value)}>
                   {assignments.map((a) => (
                     <option key={`${a.class._id}:${a.subject._id}`} value={`${a.class._id}:${a.subject._id}`}>
-                      {a.class.name}{a.class.arm ? ` ${a.class.arm}` : ''} — {a.subject.name}
+                      {a.class.name}{a.class.arm ? ` ${a.class.arm}` : ''} — {a.subject.name}{a.viaClassTeacher ? ' (as Class Teacher)' : ''}
                     </option>
                   ))}
                 </Select>

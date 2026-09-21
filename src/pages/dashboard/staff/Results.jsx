@@ -286,7 +286,10 @@ export default function StaffResults() {
                   {(matrixRow?.subjects || []).map((s) => (
                     <tr key={s.subject._id || s.subject} className="border-b border-[var(--paper-200)] last:border-0">
                       <td className="py-2 px-2 whitespace-nowrap">{s.subject?.name || '—'}</td>
-                      <td className="py-2 px-2 whitespace-nowrap text-[var(--slate-500)]">{s.teacher ? `${s.teacher.firstName} ${s.teacher.lastName}` : '—'}</td>
+                      <td className="py-2 px-2 whitespace-nowrap text-[var(--slate-500)]">
+                        {s.teacher ? `${s.teacher.firstName} ${s.teacher.lastName}` : '—'}
+                        {s.viaClassTeacher && <span className="text-xs"> (as Class Teacher)</span>}
+                      </td>
                       <td className="py-2 px-2 font-mono">{s.total ?? '—'}</td>
                       <td className="py-2 px-2">{s.total != null && <Badge tone="brass">{s.total >= 80 ? 'A' : s.total >= 70 ? 'B' : s.total >= 60 ? 'C' : s.total >= 50 ? 'D' : s.total >= 40 ? 'E' : 'F'}</Badge>}</td>
                       <td className="py-2 px-2"><Badge tone={SUBJECT_STATUS_TONE[s.status]}>{SUBJECT_STATUS_LABEL[s.status]}</Badge></td>
