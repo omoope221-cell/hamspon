@@ -19,6 +19,9 @@ export default function AdminStudents() {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Primary and Secondary are shown as separate tabs, never one combined
+  // list — each tab fetches its own section from the server.
+  const [sectionTab, setSectionTab] = useState('primary');
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
@@ -37,13 +40,13 @@ export default function AdminStudents() {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([studentsApi.getAll({ search, limit: 50 }), classesApi.getAll({ limit: 200 })])
+    Promise.all([studentsApi.getAll({ search, section: sectionTab, limit: 50 }), classesApi.getAll({ limit: 200 })])
       .then(([s, c]) => {
         setStudents(s.data);
         setClasses(c.data);
       })
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, sectionTab]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -135,12 +138,26 @@ export default function AdminStudents() {
         }
       />
 
+      <div className="flex gap-1 mb-4 border-b border-[var(--paper-200)]">
+        {['primary', 'secondary'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setSectionTab(t)}
+            className={`px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${
+              sectionTab === t ? 'border-[var(--brass-500)] text-[var(--ink-900)]' : 'border-transparent text-[var(--slate-500)]'
+            }`}
+          >
+            {t} School
+          </button>
+        ))}
+      </div>
+
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <div className="relative flex-1 max-w-xs">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--slate-500)]" />
             <Input
-              placeholder="Search by name or admission no."
+              placeholder={`Search ${sectionTab} students by name or admission no.`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -151,14 +168,13 @@ export default function AdminStudents() {
         <DataTable
           loading={loading}
           rows={students}
-          emptyTitle="No students yet"
+          emptyTitle={`No ${sectionTab} students yet`}
           emptyBody="Add your first student to get started."
           onRowClick={openEdit}
           columns={[
             { key: 'admissionNumber', header: 'Adm. No.', render: (r) => <span className="font-mono text-xs">{r.admissionNumber}</span> },
             { key: 'name', header: 'Name', render: (r) => `${r.firstName} ${r.lastName}` },
             { key: 'gender', header: 'Gender', render: (r) => r.gender ? r.gender[0].toUpperCase() + r.gender.slice(1) : '—' },
-            { key: 'section', header: 'Section', render: (r) => <Badge tone={r.section === 'primary' ? 'sage' : 'brass'}>{r.section}</Badge> },
             { key: 'class', header: 'Class', render: (r) => r.class?.name || '—' },
             { key: 'status', header: 'Status', render: (r) => <Badge tone={r.status === 'active' ? 'sage' : 'rust'}>{r.status}</Badge> },
           ]}

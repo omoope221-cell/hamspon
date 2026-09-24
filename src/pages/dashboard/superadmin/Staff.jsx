@@ -41,6 +41,8 @@ export default function AdminStaff() {
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  // Primary/Secondary/Both are shown as separate tabs, never one combined list.
+  const [sectionTab, setSectionTab] = useState('primary');
   const [modalOpen, setModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [formError, setFormError] = useState('');
@@ -57,7 +59,7 @@ export default function AdminStaff() {
   const load = useCallback(() => {
     setLoading(true);
     Promise.all([
-      staffApi.getAll({ search, limit: 50 }),
+      staffApi.getAll({ search, section: sectionTab, limit: 50 }),
       classesApi.getAll({ limit: 200 }),
       subjectsApi.getAll({ limit: 200 }),
     ])
@@ -67,7 +69,7 @@ export default function AdminStaff() {
         setSubjects(sub.data);
       })
       .finally(() => setLoading(false));
-  }, [search]);
+  }, [search, sectionTab]);
 
   useEffect(() => {
     const t = setTimeout(load, 300);
@@ -162,16 +164,30 @@ export default function AdminStaff() {
         action={<Button variant="brass" onClick={() => setModalOpen(true)}><Plus size={16} /> Add staff</Button>}
       />
 
+      <div className="flex gap-1 mb-4 border-b border-[var(--paper-200)]">
+        {['primary', 'secondary', 'both'].map((t) => (
+          <button
+            key={t}
+            onClick={() => setSectionTab(t)}
+            className={`px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${
+              sectionTab === t ? 'border-[var(--brass-500)] text-[var(--ink-900)]' : 'border-transparent text-[var(--slate-500)]'
+            }`}
+          >
+            {t === 'both' ? 'Both Sections' : `${t} School`}
+          </button>
+        ))}
+      </div>
+
       <Card>
         <div className="relative max-w-xs mb-4">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--slate-500)]" />
-          <Input placeholder="Search by name or staff ID" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder={`Search ${sectionTab === 'both' ? '' : sectionTab + ' '}staff by name or staff ID`} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
         </div>
 
         <DataTable
           loading={loading}
           rows={staff}
-          emptyTitle="No staff yet"
+          emptyTitle={`No ${sectionTab === 'both' ? '' : sectionTab + ' '}staff yet`}
           onRowClick={openEdit}
           columns={[
             { key: 'staffId', header: 'Staff ID', render: (r) => <span className="font-mono text-xs">{r.staffId}</span> },
@@ -179,7 +195,6 @@ export default function AdminStaff() {
             { key: 'role', header: 'Role', render: (r) => <Badge tone="brass">{r.role.replace('_', ' ')}</Badge> },
             { key: 'classes', header: 'Assigned Classes', render: (r) => r.assignedClasses?.length ? r.assignedClasses.map((c) => c.name).join(', ') : '—' },
             { key: 'department', header: 'Department', render: (r) => r.department || '—' },
-            { key: 'section', header: 'Section', render: (r) => <Badge tone="slate">{(r.section || 'both').replace(/^\w/, (c) => c.toUpperCase())}</Badge> },
             { key: 'status', header: 'Status', render: (r) => <Badge tone={r.status === 'active' ? 'sage' : 'rust'}>{r.status}</Badge> },
             {
               key: 'actions', header: '', render: (r) => (
