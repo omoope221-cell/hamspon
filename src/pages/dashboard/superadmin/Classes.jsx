@@ -9,6 +9,24 @@ import { ApiError } from '../../../api/client';
 
 const BLANK_EDIT = { name: '', section: 'primary', arm: '', capacity: 40, classTeacher: '', session: '', subjectTeachers: [] };
 
+// Staff roles that can plausibly be a Class Teacher / Subject Teacher —
+// keeps accountants, bursars, receptionists etc. out of these pickers.
+const TEACHING_ROLES = ['teacher', 'head_teacher', 'vice_principal', 'principal'];
+
+// Filters a list down to whatever matches (by school section, teaching
+// role, etc.), but always keeps whichever item is CURRENTLY selected
+// even if it no longer matches — so changing a class's section, say,
+// never silently makes an already-picked teacher/subject disappear
+// from the dropdown without the admin noticing and choosing again.
+function optionsFor(list, currentId, matches) {
+  const filtered = list.filter(matches);
+  if (currentId && !filtered.some((x) => x._id === currentId)) {
+    const current = list.find((x) => x._id === currentId);
+    if (current) return [current, ...filtered];
+  }
+  return filtered;
+}
+
 export default function AdminClasses() {
   const [tab, setTab] = useState('classes');
   const [classes, setClasses] = useState([]);
@@ -26,6 +44,7 @@ export default function AdminClasses() {
   const [editing, setEditing] = useState(null);
   const [editForm, setEditForm] = useState(BLANK_EDIT);
   const [editError, setEditError] = useState('');
+  const [deletingSubjectId, setDeletingSubjectId] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -142,6 +161,19 @@ export default function AdminClasses() {
     } finally { setSaving(false); }
   }
 
+  async function handleDeleteSubject(subject) {
+    if (!window.confirm(`Permanently delete "${subject.name}"? This can't be undone.`)) return;
+    setDeletingSubjectId(subject._id);
+    try {
+      await subjectsApi.remove(subject._id);
+      load();
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : 'Failed to delete subject.');
+    } finally {
+      setDeletingSubjectId(null);
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -192,6 +224,20 @@ export default function AdminClasses() {
               { key: 'name', header: 'Subject' },
               { key: 'section', header: 'Section', render: (r) => <Badge>{r.section}</Badge> },
               { key: 'teachers', header: 'Teachers', render: (r) => r.teachers?.length || 0 },
+              {
+                key: 'actions', header: '', render: (r) => (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteSubject(r); }}
+                    disabled={deletingSubjectId === r._id}
+                    className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2 disabled:opacity-50"
+                    aria-label={`Delete ${r.name}`}
+                    title="Delete subject"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                ),
+              },
             ]}
           />
         )}
@@ -253,7 +299,8 @@ export default function AdminClasses() {
             <Field label="Class Teacher">
               <Select value={editForm.classTeacher} onChange={(e) => setEditForm({ ...editForm, classTeacher: e.target.value })}>
                 <option value="">None assigned</option>
-                {staff.map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName} ({s.role.replace('_', ' ')})</option>)}
+                {optionsFor(staff, editForm.classTeacher, (s) => TEACHING_ROLES.includes(s.role) && (!s.section || s.section === 'both' || s.section === editForm.section))
+                  .map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName} ({s.role.replace('_', ' ')})</option>)}
               </Select>
             </Field>
             <Field label="Session">
@@ -269,20 +316,23 @@ export default function AdminClasses() {
                 <button type="button" onClick={addSubjectTeacherRow} className="text-xs text-[var(--brass-600)] hover:underline">+ Add subject</button>
               </div>
               <p className="text-xs text-[var(--slate-500)] mb-2">
-                Add every subject this class takes. Assign a subject teacher where you have one — leave "teacher"
-                as "No subject teacher" to let the Class Teacher cover that subject instead (common for classes
-                where one teacher takes everything).
+                Add every subject this class takes. Only {editForm.section} subjects (and subjects marked "Both") and
+                {' '}{editForm.section} teachers show up below, based on this class's Section above — assign a
+                subject teacher where you have one, or leave "teacher" as "No subject teacher" to let the Class
+                Teacher cover that subject instead (common for classes where one teacher takes everything).
               </p>
               <div className="space-y-2">
                 {editForm.subjectTeachers.map((row, i) => (
                   <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
                     <Select value={row.subject} onChange={(e) => updateSubjectTeacherRow(i, 'subject', e.target.value)}>
                       <option value="">Select subject</option>
-                      {subjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      {optionsFor(subjects, row.subject, (s) => s.section === 'both' || s.section === editForm.section)
+                        .map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
                     </Select>
                     <Select value={row.teacher} onChange={(e) => updateSubjectTeacherRow(i, 'teacher', e.target.value)}>
                       <option value="">No subject teacher (Class Teacher covers it)</option>
-                      {staff.map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName}</option>)}
+                      {optionsFor(staff, row.teacher, (s) => TEACHING_ROLES.includes(s.role) && (!s.section || s.section === 'both' || s.section === editForm.section))
+                        .map((s) => <option key={s._id} value={s._id}>{s.firstName} {s.lastName}</option>)}
                     </Select>
                     <button type="button" onClick={() => removeSubjectTeacherRow(i)} className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2" aria-label="Remove">
                       <Trash2 size={14} />

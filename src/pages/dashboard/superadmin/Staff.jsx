@@ -12,7 +12,7 @@ const STAFF_ROLES = [
   'registrar', 'ict_admin', 'librarian', 'hostel_master', 'receptionist',
 ];
 
-const BLANK_CREATE = { fullName: '', email: '', staffId: '', role: 'teacher', department: '', assignedClasses: [], assignedSubjects: [] };
+const BLANK_CREATE = { fullName: '', email: '', staffId: '', role: 'teacher', department: '', section: 'both', assignedClasses: [], assignedSubjects: [] };
 
 function MultiCheckList({ options, selected, onChange, labelFor, emptyLabel }) {
   if (!options.length) return <p className="text-xs text-[var(--slate-500)]">{emptyLabel}</p>;
@@ -49,7 +49,7 @@ export default function AdminStaff() {
 
   // Edit / delete
   const [editing, setEditing] = useState(null);
-  const [editForm, setEditForm] = useState({ department: '', assignedClasses: [], assignedSubjects: [] });
+  const [editForm, setEditForm] = useState({ department: '', section: 'both', assignedClasses: [], assignedSubjects: [] });
   const [editError, setEditError] = useState('');
   const [saving, setSaving] = useState(false);
   const [resetPw, setResetPw] = useState(null); // temp password shown after a reset
@@ -106,6 +106,7 @@ export default function AdminStaff() {
     setEditing(row);
     setEditForm({
       department: row.department || '',
+      section: row.section || 'both',
       assignedClasses: (row.assignedClasses || []).map((c) => c._id || c),
       assignedSubjects: (row.assignedSubjects || []).map((s) => s._id || s),
     });
@@ -119,6 +120,7 @@ export default function AdminStaff() {
     try {
       await staffApi.update(editing._id, {
         department: editForm.department,
+        section: editForm.section,
         assignedClasses: editForm.assignedClasses,
         assignedSubjects: editForm.assignedSubjects,
       });
@@ -177,6 +179,7 @@ export default function AdminStaff() {
             { key: 'role', header: 'Role', render: (r) => <Badge tone="brass">{r.role.replace('_', ' ')}</Badge> },
             { key: 'classes', header: 'Assigned Classes', render: (r) => r.assignedClasses?.length ? r.assignedClasses.map((c) => c.name).join(', ') : '—' },
             { key: 'department', header: 'Department', render: (r) => r.department || '—' },
+            { key: 'section', header: 'Section', render: (r) => <Badge tone="slate">{(r.section || 'both').replace(/^\w/, (c) => c.toUpperCase())}</Badge> },
             { key: 'status', header: 'Status', render: (r) => <Badge tone={r.status === 'active' ? 'sage' : 'rust'}>{r.status}</Badge> },
             {
               key: 'actions', header: '', render: (r) => (
@@ -219,6 +222,13 @@ export default function AdminStaff() {
             <Field label="Department (optional)">
               <Input value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
             </Field>
+            <Field label="School section" hint="Which level(s) this teacher belongs to — used to decide who shows up when a Class & Subject assignment is made.">
+              <Select value={form.section} onChange={(e) => setForm({ ...form, section: e.target.value })}>
+                <option value="both">Both</option>
+                <option value="primary">Primary</option>
+                <option value="secondary">Secondary</option>
+              </Select>
+            </Field>
             <Field label="Assign to class(es) (optional)">
               <MultiCheckList
                 options={classes}
@@ -256,6 +266,13 @@ export default function AdminStaff() {
             </p>
             <form onSubmit={handleSaveEdit} className="space-y-4">
               <Field label="Department"><Input value={editForm.department} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} /></Field>
+              <Field label="School section" hint="Which level(s) this teacher belongs to — used to decide who shows up when a Class & Subject assignment is made.">
+                <Select value={editForm.section} onChange={(e) => setEditForm({ ...editForm, section: e.target.value })}>
+                  <option value="both">Both</option>
+                  <option value="primary">Primary</option>
+                  <option value="secondary">Secondary</option>
+                </Select>
+              </Field>
               <Field label="Assigned class(es)">
                 <MultiCheckList
                   options={classes}
