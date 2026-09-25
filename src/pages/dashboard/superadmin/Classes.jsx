@@ -29,6 +29,12 @@ function optionsFor(list, currentId, matches) {
 
 export default function AdminClasses() {
   const [tab, setTab] = useState('classes');
+  // Sub-tab for the Subjects list only — Primary/Secondary/Both are
+  // shown as separate lists, never joined into one. This never touches
+  // the `subjects` state itself, which stays the full list because the
+  // class-edit modal's subject picker (optionsFor) needs to see every
+  // subject to filter it by a class's own section.
+  const [subjectSectionTab, setSubjectSectionTab] = useState('primary');
   const [classes, setClasses] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [sessions, setSessions] = useState([]);
@@ -179,7 +185,17 @@ export default function AdminClasses() {
       <PageHeader
         eyebrow="Register — Academics"
         title="Classes & Subjects"
-        action={<Button variant="brass" onClick={() => setModalOpen(true)}><Plus size={16} /> Add {tab === 'classes' ? 'class' : 'subject'}</Button>}
+        action={
+          <Button
+            variant="brass"
+            onClick={() => {
+              if (tab === 'subjects') setSubjectForm((f) => ({ ...f, section: subjectSectionTab === 'both' ? 'both' : subjectSectionTab }));
+              setModalOpen(true);
+            }}
+          >
+            <Plus size={16} /> Add {tab === 'classes' ? 'class' : 'subject'}
+          </Button>
+        }
       />
 
       <div className="flex gap-1 mb-4 border-b border-[var(--paper-200)]">
@@ -215,31 +231,45 @@ export default function AdminClasses() {
             <p className="text-xs text-[var(--slate-500)] mt-3">Click a row to edit, assign a Class Teacher, or remove a class.</p>
           </>
         ) : (
-          <DataTable
-            loading={loading}
-            rows={subjects}
-            emptyTitle="No subjects set up yet"
-            columns={[
-              { key: 'code', header: 'Code', render: (r) => <span className="font-mono text-xs">{r.code}</span> },
-              { key: 'name', header: 'Subject' },
-              { key: 'section', header: 'Section', render: (r) => <Badge>{r.section}</Badge> },
-              { key: 'teachers', header: 'Teachers', render: (r) => r.teachers?.length || 0 },
-              {
-                key: 'actions', header: '', render: (r) => (
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteSubject(r); }}
-                    disabled={deletingSubjectId === r._id}
-                    className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2 disabled:opacity-50"
-                    aria-label={`Delete ${r.name}`}
-                    title="Delete subject"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                ),
-              },
-            ]}
-          />
+          <>
+            <div className="flex gap-1 mb-4 border-b border-[var(--paper-200)]">
+              {['primary', 'secondary', 'both'].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setSubjectSectionTab(t)}
+                  className={`px-4 py-2 text-sm font-medium capitalize border-b-2 -mb-px transition-colors ${
+                    subjectSectionTab === t ? 'border-[var(--brass-500)] text-[var(--ink-900)]' : 'border-transparent text-[var(--slate-500)]'
+                  }`}
+                >
+                  {t === 'both' ? 'Both Sections' : `${t} School`}
+                </button>
+              ))}
+            </div>
+            <DataTable
+              loading={loading}
+              rows={subjects.filter((s) => s.section === subjectSectionTab)}
+              emptyTitle={`No ${subjectSectionTab === 'both' ? '' : subjectSectionTab + ' '}subjects set up yet`}
+              columns={[
+                { key: 'code', header: 'Code', render: (r) => <span className="font-mono text-xs">{r.code}</span> },
+                { key: 'name', header: 'Subject' },
+                { key: 'teachers', header: 'Teachers', render: (r) => r.teachers?.length || 0 },
+                {
+                  key: 'actions', header: '', render: (r) => (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleDeleteSubject(r); }}
+                      disabled={deletingSubjectId === r._id}
+                      className="text-[var(--rust-500)] hover:bg-[var(--rust-100)] rounded-md p-2 disabled:opacity-50"
+                      aria-label={`Delete ${r.name}`}
+                      title="Delete subject"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  ),
+                },
+              ]}
+            />
+          </>
         )}
       </Card>
 

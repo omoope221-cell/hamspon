@@ -104,6 +104,23 @@ export default function AdminStaff() {
     load();
   }
 
+  // Reclassifies a "Both Sections" staff member into Primary or
+  // Secondary in one click — only touches the `section` field, so
+  // nothing else about them (role, department, assigned classes,
+  // password, etc.) is re-entered or disturbed.
+  const [movingId, setMovingId] = useState(null);
+  async function moveToSection(member, section) {
+    setMovingId(member._id);
+    try {
+      await staffApi.update(member._id, { section });
+      load();
+    } catch (err) {
+      window.alert(err instanceof ApiError ? err.message : 'Failed to move staff member.');
+    } finally {
+      setMovingId(null);
+    }
+  }
+
   function openEdit(row) {
     setEditing(row);
     setEditForm({
@@ -198,17 +215,43 @@ export default function AdminStaff() {
             { key: 'status', header: 'Status', render: (r) => <Badge tone={r.status === 'active' ? 'sage' : 'rust'}>{r.status}</Badge> },
             {
               key: 'actions', header: '', render: (r) => (
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleStatus(r); }}
-                  className="text-xs font-mono uppercase text-[var(--slate-600)] hover:text-[var(--ink-900)]"
-                >
-                  {r.status === 'active' ? 'Suspend' : 'Activate'}
-                </button>
+                <div className="flex items-center gap-3">
+                  {sectionTab === 'both' && (
+                    <span className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveToSection(r, 'primary'); }}
+                        disabled={movingId === r._id}
+                        className="text-xs font-mono uppercase text-[var(--sage-600)] hover:underline disabled:opacity-50"
+                        title="Move to Primary"
+                      >
+                        → Primary
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); moveToSection(r, 'secondary'); }}
+                        disabled={movingId === r._id}
+                        className="text-xs font-mono uppercase text-[var(--brass-600)] hover:underline disabled:opacity-50"
+                        title="Move to Secondary"
+                      >
+                        → Secondary
+                      </button>
+                    </span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleStatus(r); }}
+                    className="text-xs font-mono uppercase text-[var(--slate-600)] hover:text-[var(--ink-900)]"
+                  >
+                    {r.status === 'active' ? 'Suspend' : 'Activate'}
+                  </button>
+                </div>
               ),
             },
           ]}
         />
-        <p className="text-xs text-[var(--slate-500)] mt-3">Click a row to edit assignments, reset password, or remove a staff member.</p>
+        <p className="text-xs text-[var(--slate-500)] mt-3">
+          {sectionTab === 'both'
+            ? 'These staff show up under both sections. Use "→ Primary" / "→ Secondary" to move one into a single section — everything else about them stays exactly as is.'
+            : 'Click a row to edit assignments, reset password, or remove a staff member.'}
+        </p>
       </Card>
 
       <Modal open={modalOpen} onClose={closeModal} title={tempCred ? 'Staff account created' : 'Add a new staff member'}>
