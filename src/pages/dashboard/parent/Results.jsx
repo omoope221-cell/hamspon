@@ -92,7 +92,7 @@ export default function ParentResults() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--paper-200)]">
-                      {['Subject', 'CA1 (10)', 'CA2 (10)', 'Assign. (10)', 'Exam (70)', 'Total (100)', 'Grade', 'Position', 'Remark'].map((h) => (
+                      {['Subject', 'CA1 (10)', 'Exam (70)', 'Total (100)', 'Grade', 'Position', 'Remark'].map((h) => (
                         <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -102,8 +102,6 @@ export default function ParentResults() {
                       <tr key={s.subject?._id || s.subject} className="border-b border-[var(--paper-200)] last:border-0">
                         <td className="py-2 px-2">{s.subject?.name || '—'}</td>
                         <td className="py-2 px-2">{s.ca1}</td>
-                        <td className="py-2 px-2">{s.ca2}</td>
-                        <td className="py-2 px-2">{s.assignment ?? 0}</td>
                         <td className="py-2 px-2">{s.exam}</td>
                         <td className="py-2 px-2 font-mono">{s.total}</td>
                         <td className="py-2 px-2"><Badge>{s.grade}</Badge></td>
