@@ -158,12 +158,6 @@ export default function Navbar() {
                       Student Login
                     </button>
                     <button
-                      onClick={() => { setPortalOpen(false); navigate("/parent/login"); }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500"
-                    >
-                      Parent Login
-                    </button>
-                    <button
                       onClick={() => { setPortalOpen(false); navigate("/staff/login"); }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-pink-50 hover:text-pink-500"
                     >
@@ -277,14 +271,6 @@ export default function Navbar() {
               >
                 <User className="h-5 w-5" />
                 <span>Student Login</span>
-              </NavLink>
-              <NavLink
-                to="/parent/login"
-                onClick={closeMenu}
-                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-base font-medium text-gray-700 hover:text-pink-500 hover:bg-pink-50"
-              >
-                <User className="h-5 w-5" />
-                <span>Parent Login</span>
               </NavLink>
               <NavLink
                 to="/staff/login"
