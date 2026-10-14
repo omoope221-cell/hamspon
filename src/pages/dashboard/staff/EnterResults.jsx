@@ -179,7 +179,7 @@ export default function EnterResults() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--paper-200)]">
-                      {['Student', 'CA1 (10)', 'CA2 (10)', 'Assign. (10)', 'Exam (70)', 'Total', 'Grade', 'Status', ''].map((h) => (
+                      {['Student', 'CA (30)', 'CA2 (10)', 'Assign. (10)', 'Exam (70)', 'Total', 'Grade', 'Status', ''].map((h) => (
                         <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -197,7 +197,7 @@ export default function EnterResults() {
                           {['ca1', 'ca2', 'assignment', 'exam'].map((field) => (
                             <td key={field} className="py-2 px-2">
                               <input
-                                type="number" min="0" max={field === 'exam' ? 70 : 10}
+                                type="number" min="0" max={field === 'exam' ? 70 : field === 'ca1' ? 30 : 10}
                                 value={row[field]} disabled={locked}
                                 onChange={(e) => updateField(row.studentId, field, e.target.value)}
                                 className="w-14 rounded border border-[var(--paper-200)] px-2 py-1 text-sm disabled:bg-[var(--paper-100)] disabled:text-[var(--slate-500)]"

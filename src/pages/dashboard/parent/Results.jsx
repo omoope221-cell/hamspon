@@ -92,7 +92,7 @@ export default function ParentResults() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--paper-200)]">
-                      {['Subject', 'CA1 (10)', 'Exam (70)', 'Total (100)', 'Grade', 'Position', 'Remark'].map((h) => (
+                      {['Subject', 'CA (30)', 'Exam (70)', 'Total (100)', 'Grade', 'Position', 'Remark'].map((h) => (
                         <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
