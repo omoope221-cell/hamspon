@@ -17,7 +17,7 @@ export default function StaffOverview() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Staff Room" title={`Welcome back, ${user?.fullName?.split(' ')[0]}`} />
+      <PageHeader eyebrow={stats?.scope === 'secondary' ? 'Hampsons College' : stats?.scope === 'primary' ? 'Hampsons Nursery & Primary School' : 'Staff Room'} title={`Welcome back, ${user?.fullName?.split(' ')[0]}`} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {user?.staffRole === 'teacher' ? (
           <>
