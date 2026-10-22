@@ -33,6 +33,7 @@ export default function EnterResults() {
   const [assignmentKey, setAssignmentKey] = useState('');
 
   const [rows, setRows] = useState([]);
+  const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingSheet, setLoadingSheet] = useState(false);
   const [savingId, setSavingId] = useState(null);
@@ -64,6 +65,7 @@ export default function EnterResults() {
     subjectResultsApi
       .getClassSheet({ class: current.class._id, subject: current.subject._id, session: sessionId, term })
       .then((r) => {
+        setMeta(r.meta || null);
         setRows(
           r.data.map((row) => ({
             studentId: row.student._id,
@@ -166,6 +168,12 @@ export default function EnterResults() {
             </div>
           </Card>
 
+          {meta && !meta.departmentFiltered && rows.some((r) => r.department) && (
+            <p className="text-sm text-[var(--brass-600)] bg-[var(--brass-100)] rounded-md px-3 py-2 mb-3">
+              Heads up: "{meta.subjectName}" doesn't match any department's subject list, so every student in the class is showing.
+              If this subject should only show certain departments, ask an admin to check the subject's spelling in Classes &amp; Subjects.
+            </p>
+          )}
           {error && <p className="text-sm text-[var(--rust-500)] bg-[var(--rust-100)] rounded-md px-3 py-2 mb-3">{error}</p>}
           {success && <p className="text-sm text-[var(--sage-600)] bg-[var(--sage-100)] rounded-md px-3 py-2 mb-3">{success}</p>}
 

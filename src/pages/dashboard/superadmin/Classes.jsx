@@ -51,6 +51,10 @@ export default function AdminClasses() {
   const [editForm, setEditForm] = useState(BLANK_EDIT);
   const [editError, setEditError] = useState('');
   const [deletingSubjectId, setDeletingSubjectId] = useState(null);
+  const [editingSubject, setEditingSubject] = useState(null); // subject being renamed/edited
+  const [subjectEditForm, setSubjectEditForm] = useState({ name: '', code: '', section: 'both' });
+  const [subjectEditError, setSubjectEditError] = useState('');
+  const [savingSubject, setSavingSubject] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -167,6 +171,23 @@ export default function AdminClasses() {
     } finally { setSaving(false); }
   }
 
+  function openEditSubject(subject) {
+    setEditingSubject(subject);
+    setSubjectEditForm({ name: subject.name || '', code: subject.code || '', section: subject.section || 'both' });
+    setSubjectEditError('');
+  }
+  async function handleSaveSubject(e) {
+    e.preventDefault();
+    setSubjectEditError(''); setSavingSubject(true);
+    try {
+      await subjectsApi.update(editingSubject._id, subjectEditForm);
+      setEditingSubject(null);
+      load();
+    } catch (err) {
+      setSubjectEditError(err instanceof ApiError ? err.message : 'Failed to update subject.');
+    } finally { setSavingSubject(false); }
+  }
+
   async function handleDeleteSubject(subject) {
     if (!window.confirm(`Permanently delete "${subject.name}"? This can't be undone.`)) return;
     setDeletingSubjectId(subject._id);
@@ -255,6 +276,15 @@ export default function AdminClasses() {
                 { key: 'teachers', header: 'Teachers', render: (r) => r.teachers?.length || 0 },
                 {
                   key: 'actions', header: '', render: (r) => (
+                    <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); openEditSubject(r); }}
+                      className="text-xs font-mono uppercase text-[var(--slate-600)] hover:text-[var(--ink-900)] px-2"
+                      title="Edit subject"
+                    >
+                      Edit
+                    </button>
                     <button
                       type="button"
                       onClick={(e) => { e.stopPropagation(); handleDeleteSubject(r); }}
@@ -265,6 +295,7 @@ export default function AdminClasses() {
                     >
                       <Trash2 size={14} />
                     </button>
+                    </div>
                   ),
                 },
               ]}
@@ -272,6 +303,22 @@ export default function AdminClasses() {
           </>
         )}
       </Card>
+
+      <Modal open={!!editingSubject} onClose={() => setEditingSubject(null)} title="Edit subject">
+        <form onSubmit={handleSaveSubject} className="space-y-4">
+          <Field label="Subject name" hint="Spell it exactly — senior-class department filtering matches on the name."><Input required value={subjectEditForm.name} onChange={(e) => setSubjectEditForm({ ...subjectEditForm, name: e.target.value })} /></Field>
+          <Field label="Code"><Input required value={subjectEditForm.code} onChange={(e) => setSubjectEditForm({ ...subjectEditForm, code: e.target.value })} /></Field>
+          <Field label="Section">
+            <Select value={subjectEditForm.section} onChange={(e) => setSubjectEditForm({ ...subjectEditForm, section: e.target.value })}>
+              <option value="both">Both</option>
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+            </Select>
+          </Field>
+          {subjectEditError && <p className="text-sm text-[var(--rust-500)] bg-[var(--rust-100)] rounded-md px-3 py-2">{subjectEditError}</p>}
+          <Button type="submit" variant="brass" className="w-full" disabled={savingSubject}>{savingSubject ? 'Saving…' : 'Save subject'}</Button>
+        </form>
+      </Modal>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={tab === 'classes' ? 'New class' : 'New subject'}>
         {tab === 'classes' ? (
@@ -387,3 +434,5 @@ export default function AdminClasses() {
     </div>
   );
 }
+
+
