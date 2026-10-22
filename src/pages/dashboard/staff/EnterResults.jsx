@@ -68,7 +68,7 @@ export default function EnterResults() {
           r.data.map((row) => ({
             studentId: row.student._id,
             name: `${row.student.firstName} ${row.student.lastName}`,
-            admissionNumber: row.student.admissionNumber,
+            admissionNumber: row.student.admissionNumber, department: row.student.department,
             ca1: row.entry?.ca1 ?? 0, ca2: row.entry?.ca2 ?? 0, assignment: row.entry?.assignment ?? 0, exam: row.entry?.exam ?? 0,
             total: row.entry?.total ?? 0,
             status: row.status,
@@ -126,7 +126,7 @@ export default function EnterResults() {
       <PageHeader eyebrow="Subject Teacher" title="Enter Results" />
       <p className="text-sm text-[var(--slate-500)] -mt-4 mb-6">
         Shows every subject you're assigned to teach, plus any subject in your own class that has no subject
-        teacher assigned yet. Save each student as you go, then submit once every student in the class has a score.
+        teacher assigned yet. For senior classes, only students whose department takes the subject are listed. Save each student as you go, then submit once every listed student has a score.
       </p>
 
       {loading ? (
@@ -192,7 +192,7 @@ export default function EnterResults() {
                         <tr key={row.studentId} className="border-b border-[var(--paper-200)] last:border-0">
                           <td className="py-2 px-2 whitespace-nowrap">
                             {row.name}
-                            <span className="block text-xs text-[var(--slate-500)]">{row.admissionNumber}</span>
+                            <span className="block text-xs text-[var(--slate-500)]">{row.admissionNumber}{row.department ? ` · ${row.department.charAt(0).toUpperCase()}${row.department.slice(1)}` : ''}</span>
                           </td>
                           {['ca1', 'ca2', 'assignment', 'exam'].map((field) => (
                             <td key={field} className="py-2 px-2">

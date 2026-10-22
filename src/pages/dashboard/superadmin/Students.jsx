@@ -9,6 +9,15 @@ import { ApiError } from '../../../api/client';
 
 const STUDENT_STATUSES = ['active', 'graduated', 'suspended', 'withdrawn'];
 
+// Older records hold free text ("Science", "Arts", "Commerce"…); map to the dropdown values.
+function normalizeDepartment(raw) {
+  const d = String(raw || '').trim().toLowerCase();
+  if (d.startsWith('sci')) return 'science';
+  if (d.startsWith('art')) return 'art';
+  if (d.startsWith('comm')) return 'commercial';
+  return '';
+}
+
 const BLANK_EDIT = {
   firstName: '', lastName: '', middleName: '', dateOfBirth: '', gender: 'male',
   section: 'primary', class: '', department: '', address: '', bloodGroup: '', genotype: '', allergies: '', status: 'active',
@@ -79,7 +88,7 @@ export default function AdminStudents() {
     setEditForm({
       firstName: row.firstName || '', lastName: row.lastName || '', middleName: row.middleName || '',
       dateOfBirth: row.dateOfBirth ? row.dateOfBirth.slice(0, 10) : '', gender: row.gender || 'male',
-      section: row.section || 'primary', class: row.class?._id || row.class || '', department: row.department || '',
+      section: row.section || 'primary', class: row.class?._id || row.class || '', department: normalizeDepartment(row.department),
       address: row.address || '', bloodGroup: row.bloodGroup || '', genotype: row.genotype || '',
       allergies: row.allergies || '', status: row.status || 'active',
     });
@@ -238,8 +247,13 @@ export default function AdminStudents() {
               </Select>
             </Field>
             {form.section === 'secondary' && (
-              <Field label="Department (Senior Secondary only — optional for JSS)">
-                <Input placeholder="e.g. Science, Arts, Commercial" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+              <Field label="Department (SS1–SS3 only — leave blank for JSS)" hint="Decides which subjects this student appears under for each subject teacher.">
+                <Select value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })}>
+                  <option value="">None / JSS</option>
+                  <option value="science">Science</option>
+                  <option value="art">Art</option>
+                  <option value="commercial">Commercial</option>
+                </Select>
               </Field>
             )}
             <Field label="Date of birth">
@@ -316,8 +330,13 @@ export default function AdminStudents() {
               </Field>
             </div>
             {editForm.section === 'secondary' && (
-              <Field label="Department (Senior Secondary only — optional for JSS)">
-                <Input placeholder="e.g. Science, Arts, Commercial" value={editForm.department} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })} />
+              <Field label="Department (SS1–SS3 only — leave blank for JSS)" hint="Decides which subjects this student appears under for each subject teacher.">
+                <Select value={editForm.department} onChange={(e) => setEditForm({ ...editForm, department: e.target.value })}>
+                  <option value="">None / JSS</option>
+                  <option value="science">Science</option>
+                  <option value="art">Art</option>
+                  <option value="commercial">Commercial</option>
+                </Select>
               </Field>
             )}
             <Field label="Address"><Input value={editForm.address} onChange={(e) => setEditForm({ ...editForm, address: e.target.value })} /></Field>
