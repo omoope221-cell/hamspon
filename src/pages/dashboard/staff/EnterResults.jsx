@@ -19,7 +19,7 @@ function computeGrade(total) {
 }
 
 // A Subject Teacher's home base: pick one of their (class, subject)
-// assignments, enter every student's CA1/CA2/Assignment/Exam, save row
+// assignments, enter every student's CA/Exam, save row
 // by row, then submit the whole class+subject once every student has a
 // score. The backend only ever returns assignments this teacher
 // actually has (Class.subjectTeachers) — there's no way to reach a
@@ -71,7 +71,7 @@ export default function EnterResults() {
             studentId: row.student._id,
             name: `${row.student.firstName} ${row.student.lastName}`,
             admissionNumber: row.student.admissionNumber, department: row.student.department,
-            ca1: row.entry?.ca1 ?? 0, ca2: row.entry?.ca2 ?? 0, assignment: row.entry?.assignment ?? 0, exam: row.entry?.exam ?? 0,
+            ca1: row.entry?.ca1 ?? 0, exam: row.entry?.exam ?? 0,
             total: row.entry?.total ?? 0,
             status: row.status,
             dirty: false,
@@ -93,7 +93,7 @@ export default function EnterResults() {
     try {
       const body = {
         student: row.studentId, class: current.class._id, subject: current.subject._id, session: sessionId, term,
-        ca1: Number(row.ca1) || 0, ca2: Number(row.ca2) || 0, assignment: Number(row.assignment) || 0, exam: Number(row.exam) || 0,
+        ca1: Number(row.ca1) || 0, exam: Number(row.exam) || 0,
       };
       const res = await subjectResultsApi.upsert(body);
       setRows((r) => r.map((x) => (x.studentId === row.studentId
@@ -187,7 +187,7 @@ export default function EnterResults() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-[var(--paper-200)]">
-                      {['Student', 'CA (30)', 'CA2 (10)', 'Assign. (10)', 'Exam (70)', 'Total', 'Grade', 'Status', ''].map((h) => (
+                      {['Student', 'CA (30)', 'Exam (70)', 'Total', 'Grade', 'Status', ''].map((h) => (
                         <th key={h} className="text-left font-mono text-[11px] uppercase tracking-wider text-[var(--slate-500)] py-2 px-2 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
@@ -195,17 +195,17 @@ export default function EnterResults() {
                   <tbody>
                     {rows.map((row) => {
                       const locked = row.status === 'submitted';
-                      const total = Number(row.ca1 || 0) + Number(row.ca2 || 0) + Number(row.assignment || 0) + Number(row.exam || 0);
+                      const total = Number(row.ca1 || 0) + Number(row.exam || 0);
                       return (
                         <tr key={row.studentId} className="border-b border-[var(--paper-200)] last:border-0">
                           <td className="py-2 px-2 whitespace-nowrap">
                             {row.name}
                             <span className="block text-xs text-[var(--slate-500)]">{row.admissionNumber}{row.department ? ` · ${row.department.charAt(0).toUpperCase()}${row.department.slice(1)}` : ''}</span>
                           </td>
-                          {['ca1', 'ca2', 'assignment', 'exam'].map((field) => (
+                          {['ca1', 'exam'].map((field) => (
                             <td key={field} className="py-2 px-2">
                               <input
-                                type="number" min="0" max={field === 'exam' ? 70 : field === 'ca1' ? 30 : 10}
+                                type="number" min="0" max={field === 'exam' ? 70 : 30}
                                 value={row[field]} disabled={locked}
                                 onChange={(e) => updateField(row.studentId, field, e.target.value)}
                                 className="w-14 rounded border border-[var(--paper-200)] px-2 py-1 text-sm disabled:bg-[var(--paper-100)] disabled:text-[var(--slate-500)]"
